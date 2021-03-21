@@ -64,97 +64,78 @@
             return null
         }
 
-        function addReplicaCard(replica, leader) {
+        function setClasses(element, conditions, fallback = null) {
+            let matched = false
+            for (const [className, condition] of Object.entries(conditions)) {
+                if (condition) {
+                    element.classList.add(className)
+                    matched = true
+                } else {
+                    element.classList.remove(className)
+                }
+            }
+
+            if (!matched && fallback) {
+                element.classList.add(fallback)
+            }
+        }
+
+        function addReplicaCard(container, prototype, replica, leader) {
             const card = prototype.cloneNode(true)
             card.removeAttribute('id')
             container.appendChild(card)
 
             const isLeader = replica.name === leader
+
+            setClasses(card, {
+                'bg-warning': isLeader
+            })
+
+            const cardBody = card.children[0]
+
+            cardBody.children[0].textContent = replica.name ?? '<Name not available>'
+            cardBody.children[1].textContent = replica.state ?? '<State not available>'
+            cardBody.children[2].textContent = replica.leader ?? '<Leader not available>'
+
+            const cardFooter = card.children[1]
+
             const considersItselfElected = replica.state === 'elected'
             const considersItselfNotElected = replica.state === 'notElected'
 
-            function setupBody() {
-                const cardBody = card.children[0]
+            setClasses(cardFooter.children[0], {
+                // Replica is in a correct final state.
+                'bg-success': considersItselfElected && isLeader || considersItselfNotElected && !isLeader,
+                // Replica isn't in a correct final state.
+                'bg-danger': considersItselfElected && !isLeader || considersItselfNotElected && isLeader
+            }, 'bg-warning')
 
-                const replicaName = cardBody.children[0]
-                replicaName.textContent = replica.name ?? '<Name not available>'
-
-                const replicaState = cardBody.children[1]
-                replicaState.textContent = replica.state ?? '<State not available>'
-
-                const replicaLeader = cardBody.children[2]
-                replicaLeader.textContent = replica.leader ?? '<Leader not available>'
-            }
-
-            function setupFooter() {
-                const cardFooter = card.children[1]
-
-                function setupRoleBadge() {
-                    const roleBadge = cardFooter.children[0]
-
-                    if (considersItselfElected && isLeader || considersItselfNotElected && !isLeader) {
-                        // Replica is in a correct final state.
-                        roleBadge.classList.add('bg-success')
-                    } else if (considersItselfElected && !isLeader || considersItselfNotElected && isLeader) {
-                        // Replica isn't in a correct final state.
-                        roleBadge.classList.add('bg-danger')
-                    } else {
-                        // Replica is in a transitional state.
-                        roleBadge.classList.add('bg-warning')
-                    }
-                }
-
-                function setupLeaderBadge() {
-                    const leaderBadge = cardFooter.children[1]
-
-                    if (replica.leader == leader) {
-                        leaderBadge.classList.add('bg-success')
-                    } else {
-                        leaderBadge.classList.add('bg-danger')
-                    }
-                }
-
-                setupRoleBadge()
-                setupLeaderBadge()
-            }
-
-            setupBody()
-            setupFooter()
-
-            if (isLeader) {
-                card.classList.add('bg-warning')
-            }
+            setClasses(cardFooter.children[1], {
+                'bg-success': replica.leader === leader
+            }, 'bg-danger')
 
             return card
         }
 
-        const container = document.getElementById('container')
-        const prototype = document.getElementById('prototype')
+        function updateState(container, prototype) {
+            container.innerHTML = ''
 
-        container.removeChild(prototype)
-
-        fetchState()
-            .then(state => {
+            fetchState().then(state => {
                 if (!state || !state.replicas || !state.leader) {
                     console.error('Invalid state provided', state)
                     return
                 }
 
                 // Descending sort on names.
-                state.replicas.sort((a, b) => {
-                    if (a.name < b.name) {
-                        return 1
-                    } else if (a.name > b.name) {
-                        return -1
-                    } else {
-                        return 0
-                    }
-                })
+                state.replicas.sort((a, b) => a.name < b.name ? 1 : a.name > b.name ? -1 : 0)
 
-                for (const replica of state.replicas) {
-                    const card = addReplicaCard(replica, state.leader)
-                }
+                state.replicas.forEach(replica => addReplicaCard(container, prototype, replica, state.leader));
             })
+        }
+
+        const container = document.getElementById('container')
+        const prototype = document.getElementById('prototype')
+
+        updateState(container, prototype)
     </script>
 </body>
 
