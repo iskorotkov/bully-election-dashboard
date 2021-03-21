@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bully-election-dashboard
+  labels:
+    app: bully-election-dashboard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bully-election-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bully-election-dashboard
+  template:
+    metadata:
+      labels:
+        app: bully-election-dashboard
+    spec:
+      serviceAccountName: bully-election-dashboard
+      containers:
+        - name: bully-election-dashboard
+          image: iskorotkov/bully-election-dashboard:v0.1.0-alpha.4
+          resources:
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+          ports:
+            - containerPort: 80
+          env:
+            - name: TARGET_NAMESPACE
+              value: "chaos-app"
+            - name: DEVELOPMENT
+              value: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bully-election-dashboard
+spec:
+  type: NodePort
+  selector:
+    app: bully-election-dashboard
+  ports:
+    - port: 80
+      targetPort: 80
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bully-election-dashboard
+  labels:
+    app: bully-election-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bully-election-dashboard
+  labels:
+    app: bully-election-dashboard
+rules:
+  - verbs: ["list", "get"]
+    apiGroups: [""]
+    resources: ["pods"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bully-election-dashboard
+  labels:
+    app: bully-election-dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: bully-election-dashboard
+subjects:
+  - kind: ServiceAccount
+    name: bully-election-dashboard
+    namespace: bully-election-dashboard
