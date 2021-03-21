@@ -8,6 +8,8 @@ import (
 
 	"github.com/iskorotkov/bully-election-dashboard/pkg/collect"
 	"github.com/iskorotkov/bully-election-dashboard/pkg/state"
+	"github.com/iskorotkov/bully-election-dashboard/pkg/ui"
+	"github.com/rs/cors"
 	_ "go.uber.org/automaxprocs"
 	"go.uber.org/zap"
 )
@@ -45,12 +47,22 @@ func main() {
 		logger.Fatal("namespace wasn't set")
 	}
 
-	server := http.Server{
-		Addr: ":80",
+	stateServer := state.NewServer(logger.Named("state-server"))
+
+	uiServer, err := ui.NewServer(namespace, logger.Named("ui-server"))
+	if err != nil {
+		logger.Fatal("couldn't create ui server",
+			zap.Error(err))
 	}
 
-	stateServer := state.NewServer(logger.Named("state-server"))
-	http.HandleFunc("/", stateServer.Handle)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", stateServer.Handle)
+	mux.HandleFunc("/ui", uiServer.Handle)
+
+	server := http.Server{
+		Addr:    ":80",
+		Handler: cors.Default().Handler(mux),
+	}
 
 	collector, err := collect.NewCollector(namespace, time.Second*5, logger.Named("collector"))
 	if err != nil {

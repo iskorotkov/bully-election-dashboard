@@ -1,5 +1,5 @@
 image = iskorotkov/bully-election-dashboard
-version = v0.1.0-alpha.5
+version = v0.1.0-alpha.6
 namespace = bully-election-dashboard
 
 .PHONY: ci
