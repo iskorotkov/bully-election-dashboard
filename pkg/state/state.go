@@ -85,6 +85,7 @@ func (s *Server) Handle(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, msg, http.StatusInternalServerError)
 	}
 
+	rw.Header().Add("Content-Type", "application/json")
 	fmt.Fprint(rw, string(b))
 }
 
