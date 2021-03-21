@@ -10,24 +10,24 @@ import (
 )
 
 type ReplicaState struct {
-	Name       string `json:"name"`
-	LeaderName string `json:"leaderName,omitempty"`
-	State      string `json:"state,omitempty"`
+	Name   string `json:"name"`
+	Leader string `json:"leader,omitempty"`
+	State  string `json:"state,omitempty"`
 }
 
-func NewReplicaState(name string, leaderName string, state string) ReplicaState {
+func NewReplicaState(name string, leader string, state string) ReplicaState {
 	return ReplicaState{
-		Name:       name,
-		LeaderName: leaderName,
-		State:      state,
+		Name:   name,
+		Leader: leader,
+		State:  state,
 	}
 }
 
 func NewUnknownReplicaState(name string) ReplicaState {
 	return ReplicaState{
-		Name:       name,
-		LeaderName: "",
-		State:      "",
+		Name:   name,
+		Leader: "",
+		State:  "",
 	}
 }
 
