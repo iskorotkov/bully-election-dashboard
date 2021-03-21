@@ -11,26 +11,10 @@
         integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
 </head>
 
-<body>
+<body class="vh-100 d-flex flex-column flex-nowrap">
     <main>
-        <div class="d-flex gap-2 p-4 justify-content-center">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h3 class="card-title">Replica name</h3>
-                    <p class="card-subtitle">Replica state</p>
-                    <p class="card-text">replica leader</p>
-                </div>
-            </div>
-
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h3 class="card-title">Replica name</h3>
-                    <p class="card-subtitle">Replica state</p>
-                    <p class="card-text">replica leader</p>
-                </div>
-            </div>
-
-            <div class="card shadow-sm">
+        <div id="container" class="d-flex flex-row flex-wrap gap-2 p-4 justify-content-center">
+            <div id="prototype" class="card shadow-sm" style="max-width: 20em;">
                 <div class="card-body">
                     <h3 class="card-title">Replica name</h3>
                     <p class="card-subtitle">Replica state</p>
@@ -40,37 +24,82 @@
         </div>
     </main>
 
-    <footer class="position-absolute bottom-0 start-50 translate-middle">
+    <footer class="mt-auto text-center p-2">
         <span class="text-muted">host: {{ .Hostname }},</span>
         <span class="text-muted">namespace: {{ .Namespace }}</span>
     </footer>
 
     <script>
-        async function getData() {
+        async function fetchState() {
             try {
-                const response = await fetch('http://localhost:81')
+                let url = ''
+                if (document.location.protocol === 'file:') {
+                    url = 'http://localhost:80'
+                } else {
+                    url = `${document.location.origin}:80`
+                }
+
+                const response = await fetch(url)
                 if (!response.ok) {
-                    console.error(response.statusText)
+                    console.error('Response has incorrect status code', response.statusText)
                     return null
                 }
 
                 const { data, error } = await response.json()
-
                 if (error) {
-                    console.error(error)
+                    console.error('Couldn\'t convert response to JSON', error)
                     return null
                 }
 
                 return data
             } catch (e) {
-                console.error(e)
+                console.error('Fetch failed', e)
             }
 
             return null
         }
 
-        getData()
-            .then(data => console.log(data))
+        function addReplicaCard(replica) {
+            const card = prototype.cloneNode(true)
+            card.removeAttribute('id')
+            container.appendChild(card)
+
+            const cardBody = card.children[0]
+
+            const replicaName = cardBody.children[0]
+            const replicaState = cardBody.children[1]
+            const replicaLeader = cardBody.children[2]
+
+            replicaName.textContent = replica.name
+            replicaState.textContent = replica.state
+            replicaLeader.textContent = replica.leaderName
+        }
+
+        const container = document.getElementById('container')
+        const prototype = document.getElementById('prototype')
+        container.removeChild(prototype)
+
+        fetchState()
+            .then(state => {
+                if (!state || !state.replicas) {
+                    console.error('Invalid state provided', state)
+                    return
+                }
+
+                state.replicas.sort((a, b) => {
+                    if (a.name < b.name) {
+                        return -1
+                    } else if (a.name > b.name) {
+                        return 1
+                    } else {
+                        return 0
+                    }
+                })
+
+                for (const replica of state.replicas) {
+                    addReplicaCard(replica)
+                }
+            })
     </script>
 </body>
 

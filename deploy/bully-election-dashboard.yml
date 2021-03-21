@@ -40,13 +40,12 @@ kind: Service
 metadata:
   name: bully-election-dashboard
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: bully-election-dashboard
   ports:
     - port: 80
       targetPort: 80
-
 ---
 apiVersion: v1
 kind: ServiceAccount
