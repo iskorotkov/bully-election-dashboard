@@ -77,6 +77,8 @@
 
             if (!matched && fallback) {
                 element.classList.add(fallback)
+            } else {
+                element.classList.remove(fallback)
             }
         }
 
