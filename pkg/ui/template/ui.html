@@ -80,11 +80,14 @@
             }
         }
 
-        function addReplicaCard(container, prototype, replica, leader) {
+        function createCard(container, prototype) {
             const card = prototype.cloneNode(true)
             card.removeAttribute('id')
             container.appendChild(card)
+            return card
+        }
 
+        function fillCard(card, replica, leader) {
             const isLeader = replica.name === leader
 
             setClasses(card, {
@@ -116,9 +119,7 @@
             return card
         }
 
-        function updateState(container, prototype) {
-            container.innerHTML = ''
-
+        function updateState(cards, container, prototype) {
             fetchState().then(state => {
                 if (!state || !state.replicas || !state.leader) {
                     console.error('Invalid state provided', state)
@@ -128,14 +129,32 @@
                 // Descending sort on names.
                 state.replicas.sort((a, b) => a.name < b.name ? 1 : a.name > b.name ? -1 : 0)
 
-                state.replicas.forEach(replica => addReplicaCard(container, prototype, replica, state.leader));
+                // Create missing cards.
+                for (let index = cards.length; index < state.replicas.length; index++) {
+                    cards.push(createCard(container, prototype))
+                }
+
+                // Hide extra cards.
+                cards.forEach((card, index) => setClasses(card, {
+                    'collapse': index >= state.replicas.length
+                }))
+
+                // Fill replica cards.
+                state.replicas.forEach((replica, index) => fillCard(cards[index], replica, state.leader));
+            }).then(() => {
+                setTimeout(() => updateState(cards, container, prototype), 1000)
+            }).catch(e => {
+                console.error('Error occurred during state update', e)
             })
         }
 
         const container = document.getElementById('container')
         const prototype = document.getElementById('prototype')
+        prototype.remove()
 
-        updateState(container, prototype)
+        const cards = []
+
+        updateState(cards, container, prototype)
     </script>
 </body>
 
