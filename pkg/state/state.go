@@ -9,39 +9,44 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	StateNone = State{}
-)
-
-type State struct {
+type ReplicaState struct {
 	Name       string `json:"name"`
-	LeaderName string `json:"leaderName"`
-	State      string `json:"state"`
+	LeaderName string `json:"leaderName,omitempty"`
+	State      string `json:"state,omitempty"`
 }
 
-func NewState(name string, leaderName string, state string) State {
-	return State{
+func NewReplicaState(name string, leaderName string, state string) ReplicaState {
+	return ReplicaState{
 		Name:       name,
 		LeaderName: leaderName,
 		State:      state,
 	}
 }
 
-func NewUnknownState(name string) State {
-	return State{
+func NewUnknownReplicaState(name string) ReplicaState {
+	return ReplicaState{
 		Name:       name,
-		LeaderName: "unknown",
-		State:      "unknown",
+		LeaderName: "",
+		State:      "",
 	}
 }
 
+type State struct {
+	Leader   string         `json:"leader,omitempty"`
+	Replicas []ReplicaState `json:"replicas,omitempty"`
+}
+
+func (s State) Empty() bool {
+	return s.Replicas == nil || len(s.Replicas) == 0
+}
+
 type dto struct {
-	Data  []State `json:"data"`
-	Error string  `json:"error"`
+	Data  State  `json:"data,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 type Server struct {
-	data   []State
+	state  State
 	mu     sync.RWMutex
 	logger *zap.Logger
 }
@@ -56,19 +61,19 @@ func (s *Server) Handle(rw http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Named("handle")
 	logger.Debug("incoming request for fetching data",
 		zap.Any("request", r),
-		zap.Any("data", s.data))
+		zap.Any("data", s.state))
 
-	data := s.Data()
+	state := s.State()
 
 	var resp dto
-	if data == nil {
+	if state.Empty() {
 		resp = dto{
-			Data:  nil,
+			Data:  state,
 			Error: "No data available",
 		}
 	} else {
 		resp = dto{
-			Data:  data,
+			Data:  state,
 			Error: "",
 		}
 	}
@@ -89,18 +94,28 @@ func (s *Server) Handle(rw http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(rw, string(b))
 }
 
-func (s *Server) Update(data []State) {
+func (s *Server) Update(replicas []ReplicaState) {
 	s.logger.Debug("data updated",
-		zap.Any("data", data))
+		zap.Any("data", replicas))
+
+	leader := ""
+	for _, replica := range replicas {
+		if leader == "" || replica.Name > leader {
+			leader = replica.Name
+		}
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.data = data
+	s.state = State{
+		Leader:   leader,
+		Replicas: replicas,
+	}
 }
 
-func (s *Server) Data() []State {
+func (s *Server) State() State {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.data
+	return s.state
 }

@@ -47,7 +47,7 @@ func NewCollector(namespace string, timeout time.Duration, logger *zap.Logger) (
 	}, nil
 }
 
-func (c *Collector) Collect() ([]state.State, error) {
+func (c *Collector) Collect() ([]state.ReplicaState, error) {
 	logger := c.logger.Named("collect")
 	logger.Debug("collection started")
 
@@ -64,7 +64,7 @@ func (c *Collector) Collect() ([]state.State, error) {
 
 	results := collectFromPods(pods, c.timeout, logger.Named("collect-from-pods"))
 
-	data := make([]state.State, 0)
+	data := make([]state.ReplicaState, 0)
 	for state := range results {
 		data = append(data, state)
 	}
@@ -90,8 +90,8 @@ func (c *Collector) pods(namespace string, timeout time.Duration, logger *zap.Lo
 	return pods, nil
 }
 
-func collectFromPods(pods *corev1.PodList, timeout time.Duration, logger *zap.Logger) <-chan state.State {
-	results := make(chan state.State, len(pods.Items))
+func collectFromPods(pods *corev1.PodList, timeout time.Duration, logger *zap.Logger) <-chan state.ReplicaState {
+	results := make(chan state.ReplicaState, len(pods.Items))
 	defer close(results)
 
 	wg := sync.WaitGroup{}
@@ -112,7 +112,7 @@ func collectFromPods(pods *corev1.PodList, timeout time.Duration, logger *zap.Lo
 			success := false
 			defer func() {
 				if !success {
-					results <- state.NewUnknownState(pod.GetName())
+					results <- state.NewUnknownReplicaState(pod.GetName())
 				}
 			}()
 
@@ -173,7 +173,7 @@ func collectFromPods(pods *corev1.PodList, timeout time.Duration, logger *zap.Lo
 				zap.String("pod", pod.GetName()),
 				zap.String("data", string(b)))
 
-			var data state.State
+			var data state.ReplicaState
 			if err := json.Unmarshal(b, &data); err != nil {
 				logger.Error("couldn't unmarshal response body",
 					zap.Any("response", resp),
