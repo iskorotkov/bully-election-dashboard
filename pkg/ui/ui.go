@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"embed"
 	"html/template"
 	"net/http"
 	"os"
@@ -8,10 +9,13 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:embed template
+var files embed.FS
+
 type Server struct {
 	hostname  string
 	namespace string
-	template  *template.Template
+	templates *template.Template
 	logger    *zap.Logger
 }
 
@@ -23,7 +27,7 @@ func NewServer(namespace string, logger *zap.Logger) (*Server, error) {
 		return nil, err
 	}
 
-	tpl, err := template.ParseFiles("./web/template/ui.html")
+	templates, err := template.ParseFS(files, "template/*")
 	if err != nil {
 		logger.Error("couldn't parse files",
 			zap.Error(err))
@@ -33,20 +37,21 @@ func NewServer(namespace string, logger *zap.Logger) (*Server, error) {
 	return &Server{
 		hostname:  hostname,
 		namespace: namespace,
-		template:  tpl,
+		templates: templates,
 		logger:    logger,
 	}, nil
 }
 
 func (s *Server) Handle(rw http.ResponseWriter, r *http.Request) {
-	err := s.template.Execute(rw, struct {
+	data := struct {
 		Hostname  string
 		Namespace string
 	}{
 		Hostname:  s.hostname,
 		Namespace: s.namespace,
-	})
-	if err != nil {
+	}
+
+	if err := s.templates.ExecuteTemplate(rw, "ui.html", data); err != nil {
 		msg := "couldn't execute template"
 		s.logger.Error(msg,
 			zap.Error(err))
