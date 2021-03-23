@@ -112,7 +112,9 @@ func collectFromPods(pods *corev1.PodList, timeout time.Duration, logger *zap.Lo
 			success := false
 			defer func() {
 				if !success {
-					results <- state.NewUnknownReplicaState(pod.GetName())
+					results <- state.ReplicaState{
+						Name: pod.GetName(),
+					}
 				}
 			}()
 

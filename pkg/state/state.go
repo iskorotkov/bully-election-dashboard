@@ -13,22 +13,7 @@ type ReplicaState struct {
 	Name   string `json:"name"`
 	Leader string `json:"leader,omitempty"`
 	State  string `json:"state,omitempty"`
-}
-
-func NewReplicaState(name string, leader string, state string) ReplicaState {
-	return ReplicaState{
-		Name:   name,
-		Leader: leader,
-		State:  state,
-	}
-}
-
-func NewUnknownReplicaState(name string) ReplicaState {
-	return ReplicaState{
-		Name:   name,
-		Leader: "",
-		State:  "",
-	}
+	Role   string `json:"role,omitempty"`
 }
 
 type State struct {

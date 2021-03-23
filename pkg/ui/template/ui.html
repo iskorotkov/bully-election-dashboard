@@ -17,6 +17,7 @@
             <div id="prototype" class="card shadow-sm" style="max-width: 20em;">
                 <div class="card-body position-relative">
                     <h3 class="h3 card-title">Replica name</h3>
+                    <p class="card-subtitle">Replica role</p>
                     <p class="card-subtitle">Replica state</p>
                     <p class="card-text">Replica leader</p>
                 </div>
@@ -93,25 +94,28 @@
             const isLeader = replica.name === leader
 
             setClasses(card, {
-                'bg-warning': isLeader
+                'border-5': isLeader,
+                'border-primary': isLeader
             })
 
             const cardBody = card.children[0]
 
             cardBody.children[0].textContent = replica.name ?? '<Name not available>'
-            cardBody.children[1].textContent = replica.state ?? '<State not available>'
-            cardBody.children[2].textContent = replica.leader ?? '<Leader not available>'
+            cardBody.children[1].textContent = replica.role ?? '<Role not available>'
+            cardBody.children[2].textContent = replica.state ?? '<State not available>'
+            cardBody.children[3].textContent = replica.leader ?? '<Leader not available>'
 
             const cardFooter = card.children[1]
 
-            const considersItselfElected = replica.state === 'elected'
-            const considersItselfNotElected = replica.state === 'notElected'
+            // Whether replica considers itself elected or not.
+            const leaderRole = replica.role === 'leader'
+            const replicaRole = replica.role === 'replica'
 
             setClasses(cardFooter.children[0], {
                 // Replica is in a correct final state.
-                'bg-success': considersItselfElected && isLeader || considersItselfNotElected && !isLeader,
+                'bg-success': leaderRole && isLeader || replicaRole && !isLeader,
                 // Replica isn't in a correct final state.
-                'bg-danger': considersItselfElected && !isLeader || considersItselfNotElected && isLeader
+                'bg-danger': leaderRole && !isLeader || replicaRole && isLeader
             }, 'bg-warning')
 
             setClasses(cardFooter.children[1], {
