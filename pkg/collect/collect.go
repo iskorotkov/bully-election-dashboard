@@ -60,7 +60,7 @@ func (c *Collector) Collect() ([]state.ReplicaState, error) {
 	}
 
 	logger.Debug("all pods info was fetched",
-		zap.Any("pods", pods))
+		zap.Int("pods", len(pods.Items)))
 
 	results := collectFromPods(pods, c.timeout, logger.Named("collect-from-pods"))
 
@@ -140,7 +140,6 @@ func collectFromPods(pods *corev1.PodList, timeout time.Duration, logger *zap.Lo
 			if err != nil {
 				logger.Error("couldn't execute request",
 					zap.String("url", url),
-					zap.Any("request", req),
 					zap.Error(err))
 				return
 			}
