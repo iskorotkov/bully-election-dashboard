@@ -14,12 +14,12 @@
 <body class="vh-100 d-flex flex-column flex-nowrap">
     <main>
         <div id="container" class="d-flex flex-row flex-wrap gap-2 p-4 justify-content-center">
-            <div id="prototype" class="card shadow-sm" style="max-width: 20em;">
+            <div id="prototype" class="card shadow-sm mw-20em">
                 <div class="card-body position-relative">
                     <h3 class="h3 card-title">Replica name</h3>
                     <p class="card-subtitle">Replica role</p>
                     <p class="card-subtitle">Replica state</p>
-                    <p class="card-text">Replica leader</p>
+                    <p class="card-subtitle">Replica leader</p>
                 </div>
 
                 <div class="card-footer">
@@ -34,6 +34,13 @@
         <span class="text-muted">host: {{ .Hostname }},</span>
         <span class="text-muted">namespace: {{ .Namespace }}</span>
     </footer>
+
+    <style>
+        .mw-20em {
+            max-width: 20em;
+        }
+
+    </style>
 
     <script>
         async function fetchState() {
