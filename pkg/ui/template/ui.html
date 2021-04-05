@@ -13,6 +13,20 @@
 
 <body class="vh-100 d-flex flex-column flex-nowrap">
     <main>
+        <ul class="m-3">
+            <li>Total disruptions: <span id="total-disruptions"></span></li>
+            <li>Mean disruption duration: <span id="mean-disruption-duration"></span></li>
+            <li>Max disruption duration: <span id="max-disruption-duration"></span></li>
+            <li>Total disruption duration: <span id="total-disruption-duration"></span></li>
+        </ul>
+
+        <ul class="m-3">
+            <li>Total unavailable times: <span id="total-unavailable"></span></li>
+            <li>Mean unavailable duration: <span id="mean-unavailable-duration"></span></li>
+            <li>Max unavailable duration: <span id="max-unavailable-duration"></span></li>
+            <li>Total unavailable duration: <span id="total-unavailable-duration"></span></li>
+        </ul>
+
         <div id="container" class="d-flex flex-row flex-wrap gap-2 p-4 justify-content-center">
             <div id="prototype" class="card shadow-sm mw-20em">
                 <div class="card-body position-relative">
@@ -44,32 +58,24 @@
 
     <script>
         async function fetchState() {
-            try {
-                let url = ''
-                if (document.location.protocol === 'file:') {
-                    url = 'http://localhost:80'
-                } else {
-                    url = `${document.location.origin}:80`
-                }
-
-                const response = await fetch(url)
-                if (!response.ok) {
-                    console.error('Response has incorrect status code', response.statusText)
-                    return null
-                }
-
-                const { data, error } = await response.json()
-                if (error) {
-                    console.error('Couldn\'t convert response to JSON', error)
-                    return null
-                }
-
-                return data
-            } catch (e) {
-                console.error('Fetch failed', e)
+            let url = ''
+            if (document.location.protocol === 'file:') {
+                url = 'http://localhost:80'
+            } else {
+                url = `${document.location.origin}:80`
             }
 
-            return null
+            const response = await fetch(url)
+            if (!response.ok) {
+                throw Error(`Response has incorrect status code: ${response.statusText}`)
+            }
+
+            const { data, error } = await response.json()
+            if (error) {
+                throw Error(`Backend returned error: ${error}`)
+            }
+
+            return data
         }
 
         function setClasses(element, conditions, fallback = null) {
@@ -132,11 +138,43 @@
             return card
         }
 
-        function updateState(cards, container, prototype) {
+        function updateMetrics(metrics, state) {
+            for (const replica of state.replicas) {
+                if (typeof replica.leader !== 'string' && !metrics.unavailable.isStarted(replica.name)) {
+                    console.debug(`Unavailable period started for replica ${replica.name}`)
+                    metrics.unavailable.start(replica.name)
+                } else if (typeof replica.leader === 'string' && metrics.unavailable.isStarted(replica.name)) {
+                    console.debug(`Unavailable period ended for replica ${replica.name}`)
+                    metrics.unavailable.end(replica.name)
+                }
+
+                if (typeof replica.leader === 'string') {
+                    if (replica.leader !== state.leader && !metrics.disruptions.isStarted(replica.name)) {
+                        console.debug(`Disruption started for replica ${replica.name}`)
+                        metrics.disruptions.start(replica.name)
+                    } else if (replica.leader === state.leader && metrics.disruptions.isStarted(replica.name)) {
+                        console.debug(`Disruption ended for replica ${replica.name}`)
+                        metrics.disruptions.end(replica.name)
+                    }
+                }
+            }
+
+            metrics.refresh()
+        }
+
+        function updateState(cards, container, prototype, metrics) {
+            const onReject = error => {
+                console.error(error)
+
+                // Hide all cards.
+                cards.forEach((card, index) => setClasses(card, {
+                    'collapse': true
+                }))
+            }
+
             fetchState().then(state => {
                 if (!state || !state.replicas || !state.leader) {
-                    console.error('Invalid state provided', state)
-                    return
+                    throw Error('Invalid state provided: ${state}')
                 }
 
                 // Descending sort on names.
@@ -154,11 +192,11 @@
 
                 // Fill replica cards.
                 state.replicas.forEach((replica, index) => fillCard(cards[index], replica, state.leader));
-            }).then(() => {
-                setTimeout(() => updateState(cards, container, prototype), 1000)
-            }).catch(e => {
-                console.error('Error occurred during state update', e)
-            })
+
+                updateMetrics(metrics, state)
+            }, onReject).then(() => {
+                setTimeout(() => updateState(cards, container, prototype, metrics), 1000)
+            }, onReject)
         }
 
         const container = document.getElementById('container')
@@ -167,7 +205,83 @@
 
         const cards = []
 
-        updateState(cards, container, prototype)
+        const createMetric = () => ({
+            started: [],
+            finished: [],
+            start(replica) {
+                this.started.push({
+                    replica: replica,
+                    startDate: new Date(),
+                    endDate: null,
+                    duration() {
+                        return (this.endDate - this.startDate) / 1000
+                    }
+                })
+            },
+            end(replica) {
+                const index = this.started.findIndex(x => x.replica === replica)
+                const x = this.started.pop(index)
+                x.endDate = new Date()
+                this.finished.push(x)
+            },
+            isStarted(replica) {
+                return this.started.find(x => x.replica === replica) !== undefined
+            },
+            meanDuration() {
+                if (this.finished.length > 0) {
+                    return this.totalDuration() / this.finished.length
+                } else {
+                    return 0
+                }
+            },
+            maxDuration() {
+                if (this.finished.length > 0) {
+                    return this.finished
+                        .map(x => x.duration())
+                        .reduce((x, y) => Math.max(x, y))
+                } else {
+                    return 0
+                }
+            },
+            totalDuration() {
+                if (this.finished.length > 0) {
+                    return this.finished
+                        .map(x => x.duration())
+                        .reduce((x, y) => x + y)
+                } else {
+                    return 0
+                }
+            }
+        })
+
+        const metrics = {
+            totalDisruptionsElement: document.getElementById('total-disruptions'),
+            meanDisruptionDurationElement: document.getElementById('mean-disruption-duration'),
+            maxDisruptionDurationElement: document.getElementById('max-disruption-duration'),
+            totalDisruptionDurationElement: document.getElementById('total-disruption-duration'),
+
+            totalUnavailableElement: document.getElementById('total-unavailable'),
+            meanUnavailableDurationElement: document.getElementById('mean-unavailable-duration'),
+            maxUnavailableDurationElement: document.getElementById('max-unavailable-duration'),
+            totalUnavailableDurationElement: document.getElementById('total-unavailable-duration'),
+
+            refresh() {
+                this.totalDisruptionsElement.innerText = `${this.disruptions.started.length} | ${this.disruptions.finished.length} times (started | finished)`
+                this.meanDisruptionDurationElement.innerText = `${this.disruptions.meanDuration()}s`
+                this.maxDisruptionDurationElement.innerText = `${this.disruptions.maxDuration()}s`
+                this.totalDisruptionDurationElement.innerText = `${this.disruptions.totalDuration()}s`
+
+                this.totalUnavailableElement.innerText = `${this.unavailable.started.length} | ${this.unavailable.finished.length} times (started | finished)`
+                this.meanUnavailableDurationElement.innerText = `${this.unavailable.meanDuration()}s`
+                this.maxUnavailableDurationElement.innerText = `${this.unavailable.maxDuration()}s`
+                this.totalUnavailableDurationElement.innerText = `${this.unavailable.totalDuration()}s`
+            },
+
+            disruptions: createMetric(),
+            unavailable: createMetric()
+        }
+
+        updateState(cards, container, prototype, metrics)
     </script>
 </body>
 
