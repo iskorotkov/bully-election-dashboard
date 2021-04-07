@@ -140,22 +140,25 @@
 
         function updateMetrics(metrics, state) {
             for (const replica of state.replicas) {
-                if (typeof replica.leader !== 'string' && !metrics.unavailable.isStarted(replica.name)) {
-                    console.debug(`Unavailable period started for replica ${replica.name}`)
-                    metrics.unavailable.start(replica.name)
-                } else if (typeof replica.leader === 'string' && metrics.unavailable.isStarted(replica.name)) {
-                    console.debug(`Unavailable period ended for replica ${replica.name}`)
-                    metrics.unavailable.end(replica.name)
-                }
-
-                if (typeof replica.leader === 'string') {
-                    if (replica.leader !== state.leader && !metrics.disruptions.isStarted(replica.name)) {
+                if (typeof replica.leader === 'string'
+                    && replica.leader !== state.leader
+                    && !metrics.disruptions.isStarted(replica.name)) {
                         console.debug(`Disruption started for replica ${replica.name}`)
                         metrics.disruptions.start(replica.name)
-                    } else if (replica.leader === state.leader && metrics.disruptions.isStarted(replica.name)) {
+                } else if (replica.leader === state.leader
+                    && metrics.disruptions.isStarted(replica.name)) {
                         console.debug(`Disruption ended for replica ${replica.name}`)
                         metrics.disruptions.end(replica.name)
                     }
+
+                if (typeof replica.leader !== 'string'
+                    && !metrics.unavailable.isStarted(replica.name)) {
+                    console.debug(`Unavailable period started for replica ${replica.name}`)
+                    metrics.unavailable.start(replica.name)
+                } else if (typeof replica.leader === 'string'
+                    && metrics.unavailable.isStarted(replica.name)) {
+                    console.debug(`Unavailable period ended for replica ${replica.name}`)
+                    metrics.unavailable.end(replica.name)
                 }
             }
 
