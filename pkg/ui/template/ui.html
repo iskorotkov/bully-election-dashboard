@@ -143,13 +143,13 @@
                 if (typeof replica.leader === 'string'
                     && replica.leader !== state.leader
                     && !metrics.disruptions.isStarted(replica.name)) {
-                        console.debug(`Disruption started for replica ${replica.name}`)
-                        metrics.disruptions.start(replica.name)
+                    console.debug(`Disruption started for replica ${replica.name}`)
+                    metrics.disruptions.start(replica.name)
                 } else if (replica.leader === state.leader
                     && metrics.disruptions.isStarted(replica.name)) {
-                        console.debug(`Disruption ended for replica ${replica.name}`)
-                        metrics.disruptions.end(replica.name)
-                    }
+                    console.debug(`Disruption ended for replica ${replica.name}`)
+                    metrics.disruptions.end(replica.name)
+                }
 
                 if (typeof replica.leader !== 'string'
                     && !metrics.unavailable.isStarted(replica.name)) {
