@@ -62,7 +62,7 @@
             if (document.location.protocol === 'file:') {
                 url = 'http://localhost:80'
             } else {
-                url = `${document.location.origin}:80`
+                url = `${document.location.origin}`
             }
 
             const response = await fetch(url)
