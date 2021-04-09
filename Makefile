@@ -1,4 +1,4 @@
-version = v1.0.1
+version = v1.0.1-metrics.1
 image = iskorotkov/bully-election-dashboard
 namespace = bully-election-dashboard
 

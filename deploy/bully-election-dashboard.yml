@@ -22,7 +22,7 @@ spec:
       serviceAccountName: bully-election-dashboard
       containers:
         - name: bully-election-dashboard
-          image: iskorotkov/bully-election-dashboard:v1.0.1
+          image: iskorotkov/bully-election-dashboard:v1.0.1-metrics.1
           resources:
             limits:
               memory: "64Mi"
@@ -40,7 +40,7 @@ kind: Service
 metadata:
   name: bully-election-dashboard
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: bully-election-dashboard
   ports:
