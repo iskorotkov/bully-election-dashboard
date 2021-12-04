@@ -45,14 +45,7 @@
     <script>
         async function fetchState() {
             try {
-                let url = ''
-                if (document.location.protocol === 'file:') {
-                    url = 'http://localhost:80'
-                } else {
-                    url = `${document.location.origin}:80`
-                }
-
-                const response = await fetch(url)
+                const response = await fetch('/')
                 if (!response.ok) {
                     console.error('Response has incorrect status code', response.statusText)
                     return null
