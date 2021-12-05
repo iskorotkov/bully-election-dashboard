@@ -59,8 +59,8 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", stateServer.Handle)
-	mux.HandleFunc("/ui", uiServer.Handle)
+	mux.HandleFunc("/", uiServer.Handle)
+	mux.HandleFunc("/api", stateServer.Handle)
 
 	server := http.Server{
 		Addr:    ":80",
