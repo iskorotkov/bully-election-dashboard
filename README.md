@@ -5,15 +5,15 @@ Dashboard for bully election algorithm for distributed systems.
 [![CodeQL](https://github.com/iskorotkov/bully-election-dashboard/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/iskorotkov/bully-election-dashboard/actions/workflows/codeql-analysis.yml)
 
 - [Dashboard for bully election algorithm](#dashboard-for-bully-election-algorithm)
-  - [Monitor](#monitor)
+  - [Endpoints](#endpoints)
   - [Build](#build)
   - [Deploy](#deploy)
   - [Links](#links)
 
-## Monitor
+## Endpoints
 
-1. `/` - for HTTP API.
-1. `/ui` - for web GUI app.
+1. `/` - for web GUI app.
+1. `/api` - for HTTP API.
 
 ## Build
 
