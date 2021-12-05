@@ -45,7 +45,7 @@
     <script>
         async function fetchState() {
             try {
-                const response = await fetch('/')
+                const response = await fetch('/api')
                 if (!response.ok) {
                     console.error('Response has incorrect status code', response.statusText)
                     return null
